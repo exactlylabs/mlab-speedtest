@@ -82,6 +82,10 @@ angular.module('Measure.Measure', ['ngRoute'])
             (data.LastServerMeasurement.TCPInfo.BytesRetrans /
             data.LastServerMeasurement.TCPInfo.BytesSent * 100).toFixed(2) + '%';
           console.log(data);
+          $.post('../../checkaddress3.php', data, function(data, status){
+            console.log(data);
+            console.log(status);
+              });
         },
         uploadStart: (data) => {
           $scope.$apply(function() {
