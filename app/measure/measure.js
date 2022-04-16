@@ -41,6 +41,8 @@ angular.module('Measure.Measure', ['ngRoute'])
 
     $scope.measurementResult = {};
 
+    var downloadData, serverData;
+
     ndt7.test(
       {
         userAcceptedDataPolicy: true,
@@ -49,6 +51,7 @@ angular.module('Measure.Measure', ['ngRoute'])
       },
       {
         serverChosen: function (server) {
+          serverData = server;
           $scope.location = server.location.city + ", " +
              server.location.country;
           $scope.address = server.machine;
@@ -82,10 +85,7 @@ angular.module('Measure.Measure', ['ngRoute'])
             (data.LastServerMeasurement.TCPInfo.BytesRetrans /
             data.LastServerMeasurement.TCPInfo.BytesSent * 100).toFixed(2) + '%';
           console.log(data);
-          $.post('../../checkaddress3.php', data, function(data, status){
-            console.log(data);
-            console.log(status);
-              });
+          downloadData = data;
         },
         uploadStart: (data) => {
           $scope.$apply(function() {
@@ -111,6 +111,37 @@ angular.module('Measure.Measure', ['ngRoute'])
           $scope.measurementResult.c2sRate =
             (data.LastServerMeasurement.TCPInfo.BytesReceived / 
             data.LastServerMeasurement.TCPInfo.ElapsedTime * 8).toFixed(2) + ' Mb/s';
+          console.log(data);
+
+          let result = {};
+
+          if (serverData && serverData.locations) {
+            result['server'] = serverData.locations.city;
+          }
+
+          if (downloadData && downloadData.LastClientMeasurement) {
+            result['dl'] = downloadData.LastClientMeasurement.MeanClientMbps.toFixed(2);
+            result['ping'] = (downloadData.LastServerMeasurement.TCPInfo.MinRTT / 1000).toFixed(0);
+            result['loss'] = String((downloadData.LastServerMeasurement.TCPInfo.BytesRetrans /
+              downloadData.LastServerMeasurement.TCPInfo.BytesSent * 100).toFixed(2))
+          }
+
+          result['ul'] = (data.LastServerMeasurement.TCPInfo.BytesReceived / 
+            data.LastServerMeasurement.TCPInfo.ElapsedTime * 8).toFixed(2);
+          result['jitter'] = 0;
+
+          // From https://stackoverflow.com/a/21210643/704936
+          var queryDict = {};
+          location.search.substr(1).split("&").forEach(function(item) {queryDict[item.split("=")[0]] = item.split("=")[1]})
+
+          if (queryDict['recordid']) {
+            result['recordid'] = queryDict['recordid'];
+          }
+
+          $.post('../../checkaddress3.php', result, function(responseData, status){
+            console.log(responseData);
+            console.log(status);
+              });
         },
       },
     ).then(() => {
